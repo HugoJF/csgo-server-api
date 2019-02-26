@@ -26,7 +26,7 @@ app.use(cors());
 /*******************
  *    CONSTANTS    *
  *******************/
-const HTTP_PORT = 10000;
+const HTTP_PORT = 15000;
 const LISTENING_IP = '104.156.246.245';
 const DATE_NOW = Date.now();
 const LOGS_PATH = __dirname + '/logs/logs' + DATE_NOW + '.log';
