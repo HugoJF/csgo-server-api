@@ -156,6 +156,8 @@ app.get('/send', (req, res) => {
         return;
     }
 
+    log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
+
     setTimeout(() => {
         server.execute(command);
     }, delay);
