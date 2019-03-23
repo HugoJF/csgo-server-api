@@ -104,7 +104,7 @@ function readServers() {
     let svs = JSON.parse(rawServers);
 
     for (let obj of svs['servers']) {
-        let sv = new Server(obj['hostname'], obj['name'], obj['ip'], obj['port'], obj['password'], obj['receiverPort']);
+        let sv = new Server(obj['hostname'], obj['name'], obj['ip'], parseInt(obj['port']), obj['password'], obj['receiverPort']);
         servers.push(sv);
         sv.startRconConnection();
     }
@@ -150,6 +150,13 @@ app.get('/send', (req, res) => {
     }
 
     let server = getServer(ip, parseInt(port));
+
+    if (!server) {
+        res.send(error('Server could not be found!'));
+        return;
+    }
+
+    log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
 
     setTimeout(() => {
         server.execute(command);
