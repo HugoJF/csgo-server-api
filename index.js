@@ -165,6 +165,36 @@ app.get('/send', (req, res) => {
     res.send(response('Sent'))
 });
 
+app.get('/sendAll', (req, res) => {
+    let command = req.query.command;
+    let token = req.query.token;
+    let delay = req.query.delay;
+
+    delay = parseInt(delay);
+
+    if (isNaN(delay)) {
+        delay = 0;
+    }
+
+    if (tokens.indexOf(token) === -1) {
+        res.send(error('Invalid token'));
+        return;
+    }
+
+    servers.forEach((server) => {
+        let ip = server.ip;
+        let port = server.port;
+
+        log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
+
+        setTimeout(() => {
+            server.execute(command);
+        }, delay);
+    });
+
+    res.send(response('Sent'))
+});
+
 app.get('/logs', (req, res) => {
     log('/logs routed');
     res.type('text');
