@@ -118,6 +118,7 @@ function validateToken(req, res) {
     let token = req.query.token;
 
     if (tokens.indexOf(token) === -1) {
+        log(`${token}: Invalid token`);
         res.send(error('Invalid token'));
         return false;
     }   else {
@@ -178,6 +179,8 @@ app.get('/list', (req, res) => {
     if (!validateToken(req, res)) return;
 
     let serializedFields = ['hostname', 'name', 'ip', 'port'];
+
+    log(`${token}: Requested server listing`);
 
     let svs = servers.map((sv) => (
         serializedFields.reduce((acc, cur) => {
