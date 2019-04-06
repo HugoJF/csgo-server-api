@@ -178,6 +178,8 @@ app.get('/send', (req, res) => {
 app.get('/list', (req, res) => {
     if (!validateToken(req, res)) return;
 
+    let token = req.query.token;
+
     let serializedFields = ['hostname', 'name', 'ip', 'port'];
 
     log(`${token}: Requested server listing`);
