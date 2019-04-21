@@ -9,6 +9,10 @@ const bodyParser = require("body-parser");
 const dotenv = require('dotenv').config({path: __dirname + '/.env'});
 const cors = require('cors');
 const io = require('socket.io')();
+const timeout = require('connect-timeout'); //express v4
+const haltOnTimedout = require('./helpers').haltOnTimedout;
+const error = require('./helpers').error;
+const response = require('./helpers').response;
 
 // web trigger to reload servers.json
 // logs?
@@ -19,9 +23,13 @@ const io = require('socket.io')();
 /***********************
  *    CONFIGURATION    *
  ***********************/
+
+app.use(timeout(30000));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
+app.use(haltOnTimedout);
+
 
 /*******************
  *    CONSTANTS    *
@@ -78,21 +86,6 @@ function getServer(ip, port) {
     }
 
     return undefined;
-}
-
-function response(res, message) {
-    return JSON.stringify({
-        error: false,
-        message: message,
-        response: res
-    });
-}
-
-function error(message) {
-    return JSON.stringify({
-        error: true,
-        message: message,
-    });
 }
 
 function log(message) {
@@ -159,10 +152,10 @@ app.get('/send', (req, res) => {
     log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
 
     setTimeout(() => {
-        server.execute(command);
+        server.execute(command, (r) => {
+            res.send(response(r));
+        });
     }, delay);
-
-    res.send(response('Sent'))
 });
 
 app.get('/sendAll', (req, res) => {
