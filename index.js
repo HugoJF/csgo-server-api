@@ -15,7 +15,6 @@ const error = require('./helpers').error;
 const response = require('./helpers').response;
 
 // web trigger to reload servers.json
-// logs?
 // callback shit?
 // delays?
 // rate limit?
@@ -78,6 +77,7 @@ process.on('uncaughtException', function (err) {
 let servers = [];
 let tokens = [];
 
+// TODO: update with foreach
 function getServer(ip, port) {
     for (let i = 0; i < servers.length; i++) {
         if (servers[i].ip === ip && servers[i].port === port) {
@@ -107,6 +107,18 @@ function readServers() {
     }
 }
 
+function validateToken(req, res) {
+    let token = req.query.token;
+
+    if (tokens.indexOf(token) === -1) {
+        log(`${token}: Invalid token`);
+        res.send(error('Invalid token'));
+        return false;
+    }   else {
+        return true;
+    }
+}
+
 /**********************
  *    STATIC CALLS    *
  **********************/
@@ -125,11 +137,13 @@ app.get('/consoleLog', (req, res) => {
 });
 
 app.get('/send', (req, res) => {
+    if (!validateToken(req, res)) return;
+
     let ip = req.query.ip;
     let port = req.query.port;
     let command = req.query.command;
-    let token = req.query.token;
     let delay = req.query.delay;
+    let token = req.query.token;
 
     delay = parseInt(delay);
 
@@ -137,10 +151,6 @@ app.get('/send', (req, res) => {
         delay = 0;
     }
 
-    if (tokens.indexOf(token) === -1) {
-        res.send(error('Invalid token'));
-        return;
-    }
 
     let server = getServer(ip, parseInt(port));
 
@@ -149,7 +159,7 @@ app.get('/send', (req, res) => {
         return;
     }
 
-    log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
+    log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
     setTimeout(() => {
         server.execute(command, (r) => {
@@ -158,7 +168,28 @@ app.get('/send', (req, res) => {
     }, delay);
 });
 
+app.get('/list', (req, res) => {
+    if (!validateToken(req, res)) return;
+
+    let token = req.query.token;
+
+    let serializedFields = ['hostname', 'name', 'ip', 'port'];
+
+    log(`${token}: Requested server listing`);
+
+    let svs = servers.map((sv) => (
+        serializedFields.reduce((acc, cur) => {
+            acc[cur] = sv[cur];
+            return acc;
+        }, {})
+    ));
+
+    res.send(response(svs));
+})
+
 app.get('/sendAll', (req, res) => {
+    if (!validateToken(req, res)) return;
+
     let command = req.query.command;
     let token = req.query.token;
     let delay = req.query.delay;
@@ -169,16 +200,11 @@ app.get('/sendAll', (req, res) => {
         delay = 0;
     }
 
-    if (tokens.indexOf(token) === -1) {
-        res.send(error('Invalid token'));
-        return;
-    }
-
     servers.forEach((server) => {
         let ip = server.ip;
         let port = server.port;
 
-        log(`${token}: ${ip}:${port} $ ${delay}s $ ${command}`);
+        log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
         setTimeout(() => {
             server.execute(command);
