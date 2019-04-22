@@ -53,8 +53,9 @@ class Server {
     }
 
     onEnd(err) {
-        this.log(`RCON connection ended!`);
+        this.log(`RCON connection ended: ${err}`);
 
+        this.authed = false;
         this.startRconConnection();
         runCallbacks(this.onConnectionEnd, err);
     }
@@ -62,6 +63,8 @@ class Server {
     onError(err) {
         this.log(`RCON errored with message: ${err}`);
 
+        this.authed = false;
+        this.startRconConnection();
         runCallbacks(this.onConnectionError, err);
     }
 

@@ -185,7 +185,7 @@ app.get('/list', (req, res) => {
     ));
 
     res.send(response(svs));
-})
+});
 
 app.get('/sendAll', (req, res) => {
     if (!validateToken(req, res)) return;
