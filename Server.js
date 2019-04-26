@@ -57,6 +57,7 @@ class Server {
 
         this.authed = false;
         this.startRconConnection();
+
         runCallbacks(this.onConnectionEnd, err);
     }
 
@@ -65,6 +66,7 @@ class Server {
 
         this.authed = false;
         this.startRconConnection();
+
         runCallbacks(this.onConnectionError, err);
     }
 

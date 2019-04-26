@@ -34,7 +34,6 @@ app.use(haltOnTimedout);
  *    CONSTANTS    *
  *******************/
 const HTTP_PORT = 10000;
-const LISTENING_IP = '104.156.246.245';
 const DATE_NOW = Date.now();
 const LOGS_PATH = __dirname + '/logs/logs' + DATE_NOW + '.log';
 const STDOUT_PATH = __dirname + '/logs/stdout' + DATE_NOW + '.log';
@@ -114,7 +113,7 @@ function validateToken(req, res) {
         log(`${token}: Invalid token`);
         res.send(error('Invalid token'));
         return false;
-    }   else {
+    } else {
         return true;
     }
 }
@@ -200,6 +199,9 @@ app.get('/sendAll', (req, res) => {
         delay = 0;
     }
 
+    let r = {};
+    let responsesReceived = 0;
+
     servers.forEach((server) => {
         let ip = server.ip;
         let port = server.port;
@@ -207,11 +209,19 @@ app.get('/sendAll', (req, res) => {
         log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
         setTimeout(() => {
-            server.execute(command);
+            let addr = `${server.ip}:${server.port}`;
+
+            r[addr] = '';
+
+            server.execute(command, (z) => {
+                responsesReceived++;
+                r[addr] = z;
+
+                if (responsesReceived === servers.length)
+                    res.send(response(r));
+            });
         }, delay);
     });
-
-    res.send(response('Sent'))
 });
 
 app.get('/logs', (req, res) => {
