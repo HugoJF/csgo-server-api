@@ -1,7 +1,12 @@
 const rcon = require('rcon');
+const util = require('util');
+const runCallbacks = require('./helpers').runCallbacks;
 
 class Server {
     constructor(hostname, name, ip, port, rconPassword, receiverPort) {
+        /**************
+         * PROPERTIES *
+         **************/
         this.hostname = hostname;
         this.name = name;
         this.ip = ip;
@@ -9,21 +14,25 @@ class Server {
         this.rconPassword = rconPassword;
         this.receiverPort = receiverPort;
 
+        /**********
+         * STATES *
+         **********/
         this.authed = false;
 
+        /***********
+         * HANDLES *
+         ***********/
         this.connection = undefined;
+
+        /*************
+         * CALLBACKS *
+         *************/
+        this.responseStack = [];
 
         this.onConnectionAuth = [];
         this.onConnectionResponse = [];
         this.onConnectionEnd = [];
         this.onConnectionError = [];
-
-        this.onReceiverData = [];
-        this.onReceiverInvalid = [];
-    }
-
-    boot() {
-        this.startRconConnection();
     }
 
     onAuth() {
@@ -31,45 +40,34 @@ class Server {
 
         this.authed = true;
 
-        for (let i = this.onConnectionAuth.length - 1; i >= 0; i--) {
-            let cb = this.onConnectionAuth[i];
-            if (cb() === true)
-                this.onConnectionAuth.splice(i, 1);
-        }
-
+        runCallbacks(this.onConnectionAuth);
     }
 
     onResponse(str) {
-        // that.log(`Responded from RCON: ${str}`);
-        for (let i = this.onConnectionResponse.length - 1; i >= 0; i--) {
-            let cb = this.onConnectionResponse[i];
-            if (cb(str) === true)
-                this.onConnectionResponse.splice(i, 1);
-        }
+        let cb = this.responseStack.shift();
+
+        if (util.isFunction(cb))
+            cb(str);
+
+        runCallbacks(this.onConnectionResponse, str);
     }
 
     onEnd(err) {
-        this.log(`RCON connection ended!`);
+        this.log(`RCON connection ended: ${err}`);
 
+        this.authed = false;
         this.startRconConnection();
 
-        for (let i = this.onConnectionEnd.length - 1; i >= 0; i--) {
-            let cb = this.onConnectionEnd[i];
-            if (cb(err) === true)
-                this.onConnectionEnd.splice(i, 1);
-        }
+        runCallbacks(this.onConnectionEnd, err);
     }
 
     onError(err) {
         this.log(`RCON errored with message: ${err}`);
 
+        this.authed = false;
         this.startRconConnection();
 
-        for (let i = this.onConnectionError.length - 1; i >= 0; i--) {
-            let cb = this.onConnectionError[i];
-            if (cb(err))
-                this.onConnectionError(i, 1);
-        }
+        runCallbacks(this.onConnectionError, err);
     }
 
     startRconConnection() {
@@ -100,12 +98,7 @@ class Server {
     syncExecute(command, callback) {
         this.connection.send(command);
 
-        this.onConnectionResponse.push((res) => {
-            if (res instanceof Function) {
-                callback(res);
-            }
-            return true;
-        })
+        this.responseStack.push(callback);
     }
 
     log(message) {
