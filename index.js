@@ -33,7 +33,7 @@ app.use(haltOnTimedout);
 /*******************
  *    CONSTANTS    *
  *******************/
-const HTTP_PORT = 10000;
+const HTTP_PORT = 9000;
 const DATE_NOW = Date.now();
 const LOGS_PATH = __dirname + '/logs/logs' + DATE_NOW + '.log';
 const STDOUT_PATH = __dirname + '/logs/stdout' + DATE_NOW + '.log';
