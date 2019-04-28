@@ -57,6 +57,8 @@ process.stderr.write = (a) => {
 console.log = function (d) { //
     log_file.write(util.format(d) + '\n');
     log_stdout.write(util.format(d) + '\n');
+    winston.log('info', d);
+
 };
 
 process.on('uncaughtException', function (err) {
@@ -70,7 +72,6 @@ winston.add(new Loggly({
     json: true
 }));
 
-winston.log('info', "Hello World from Node.js!");
 
 /*******************
  *    VARIABLES    *
