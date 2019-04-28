@@ -11,6 +11,7 @@ const error = require('./helpers').error;
 const response = require('./helpers').response;
 const dotenv = require('dotenv').config();
 const {Loggly} = require('winston-loggly-bulk');
+const winston  = require('winston');
 
 
 /***********************
