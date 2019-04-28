@@ -1,23 +1,14 @@
 const Server = require("./Server").Server;
-const request = require('request');
 const fs = require('fs');
 const express = require('express');
 const util = require('util');
 const app = express();
-const rcon = require('rcon');
 const bodyParser = require("body-parser");
-const dotenv = require('dotenv').config({path: __dirname + '/.env'});
 const cors = require('cors');
-const io = require('socket.io')();
 const timeout = require('connect-timeout'); //express v4
 const haltOnTimedout = require('./helpers').haltOnTimedout;
 const error = require('./helpers').error;
 const response = require('./helpers').response;
-
-// web trigger to reload servers.json
-// callback shit?
-// delays?
-// rate limit?
 
 /***********************
  *    CONFIGURATION    *
@@ -28,7 +19,6 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(haltOnTimedout);
-
 
 /*******************
  *    CONSTANTS    *
