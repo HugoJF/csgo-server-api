@@ -10,7 +10,6 @@ const haltOnTimedout = require('./helpers').haltOnTimedout;
 const error = require('./helpers').error;
 const response = require('./helpers').response;
 const dotenv = require('dotenv').config();
-const winston = require('winston');
 const {Loggly} = require('winston-loggly-bulk');
 
 
