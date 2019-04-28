@@ -9,6 +9,10 @@ const timeout = require('connect-timeout'); //express v4
 const haltOnTimedout = require('./helpers').haltOnTimedout;
 const error = require('./helpers').error;
 const response = require('./helpers').response;
+const dotenv = require('dotenv').config();
+const winston = require('winston');
+const {Loggly} = require('winston-loggly-bulk');
+
 
 /***********************
  *    CONFIGURATION    *
@@ -58,6 +62,15 @@ console.log = function (d) { //
 process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });
+
+winston.add(new Loggly({
+    token: process.env.LOGGLY_TOKEN,
+    subdomain: process.env.LOGGLY_DOMAIN,
+    tags: ["Winston-NodeJS"],
+    json: true
+}));
+
+winston.log('info', "Hello World from Node.js!");
 
 /*******************
  *    VARIABLES    *
