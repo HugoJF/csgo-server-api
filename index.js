@@ -143,6 +143,7 @@ app.get('/send', (req, res) => {
     let command = req.query.command;
     let delay = req.query.delay;
     let token = req.query.token;
+    let wait = req.query.wait;
 
     delay = parseInt(delay);
 
@@ -162,9 +163,13 @@ app.get('/send', (req, res) => {
 
     setTimeout(() => {
         server.execute(command, (r) => {
-            res.send(response(r));
+            if (wait) res.send(response(r));
         });
     }, delay);
+
+    if (!wait)
+        res.send(response('Sent'));
+
 });
 
 app.get('/list', (req, res) => {
@@ -192,6 +197,7 @@ app.get('/sendAll', (req, res) => {
     let command = req.query.command;
     let token = req.query.token;
     let delay = req.query.delay;
+    let wait = req.query.wait;
 
     delay = parseInt(delay);
 
@@ -206,6 +212,7 @@ app.get('/sendAll', (req, res) => {
         let ip = server.ip;
         let port = server.port;
 
+
         log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
         setTimeout(() => {
@@ -217,10 +224,14 @@ app.get('/sendAll', (req, res) => {
                 responsesReceived++;
                 r[addr] = z;
 
-                if (responsesReceived === servers.length)
+                if (wait && responsesReceived === servers.length)
                     res.send(response(r));
             });
         }, delay);
+
+        if (!wait)
+            res.send(response('Sent'));
+
     });
 });
 
