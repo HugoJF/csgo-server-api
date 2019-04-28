@@ -228,11 +228,10 @@ app.get('/sendAll', (req, res) => {
                     res.send(response(r));
             });
         }, delay);
-
-        if (!wait)
-            res.send(response('Sent'));
-
     });
+
+    if (!wait)
+        res.send(response('Sent'));
 });
 
 app.get('/logs', (req, res) => {
