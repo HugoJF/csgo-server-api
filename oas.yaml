@@ -1,0 +1,280 @@
+openapi: 3.0.0
+info:
+  version: '0.1'
+  title: 'CS:GO Server API Reference'
+  description: >-
+    Simple CS:GO server API to centralize server authentication and RCON
+    communication.
+
+components:
+  securitySchemes:
+    apiToken:
+      type: apiKey
+      in: query
+      description: API authentication token
+      name: token
+
+  responses:
+    ListResponse:
+      description: List of servers
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessfulResponseSchema'
+              - type: object
+                properties:
+                  response:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Server'
+
+    SendResponse:
+      description: Command was executed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessfulResponseSchema'
+              - type: object
+                properties:
+                  message:
+                    example: 'Sent'
+
+    SendAndWaitResponse:
+      description: Command was executed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessfulResponseSchema'
+              - type: object
+                properties:
+                  response:
+                    type: object
+                    properties:
+                      170.81.43.200:27001:
+                        example: 'CPU NetIn NetOut Uptime Maps FPS Players Svms +-ms ~tick 10.0 69646.3 142959.1 1454 37 102.43 9 2.40 1.82 0.62'
+                      170.81.43.200:27003:
+                        example: 'CPU NetIn NetOut Uptime Maps FPS Players Svms +-ms ~tick 10.0 69646.3 142959.1 1454 37 102.43 9 2.40 1.82 0.62'
+                      170.81.43.200:27004:
+                        example: 'CPU NetIn NetOut Uptime Maps FPS Players Svms +-ms ~tick 10.0 69646.3 142959.1 1454 37 102.43 9 2.40 1.82 0.62'
+
+    SendAllAndWaitResponse:
+      description: Command was executed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessfulResponseSchema'
+              - type: object
+                properties:
+                  response:
+                    example: 'CPU NetIn NetOut Uptime Maps FPS Players Svms +-ms ~tick 10.0 69646.3 142959.1 1454 37 102.43 9 2.40 1.82 0.62'
+
+    401Response:
+      description: Missing authentication
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponseSchema'
+              - type: object
+                properties:
+                  message:
+                    example: 'Missing authentication token'
+
+    403Response:
+      description: Missing authentication
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponseSchema'
+              - type: object
+                properties:
+                  message:
+                    example: 'Invalid token'
+
+    TimeoutResponse:
+      description: Missing authentication
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponseSchema'
+              - type: object
+                properties:
+                  message:
+                    example: 'Invalid token'
+
+  schemas:
+    Server:
+      title: Server schema
+      type: object
+      properties:
+        hostname:
+          type: string
+          example: Server 1
+        name:
+          type: string
+          example: Server 1
+        ip:
+          type: string
+          example: 170.81.43.200
+        port:
+          type: number
+          example: 27001
+
+    Response:
+      title: Generic successful response
+      type: object
+      properties:
+        error:
+          type: boolean
+        response:
+          oneOf:
+            - type: object
+            - type: array
+
+    SuccessfulResponseSchema:
+      title: Sucessful response
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Response'
+        - type: object
+          properties:
+            error:
+              example: false
+
+    ErrorResponseSchema:
+      title: Sucessful response
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Response'
+        - type: object
+          properties:
+            message:
+              type: string
+            error:
+              example: true
+
+
+security:
+  - apiToken: []
+
+paths:
+  /list:
+    get:
+      operationId: GET_list
+      summary: Return list of controlled servers
+      tags:
+        - Commands
+      responses:
+        200:
+          $ref: '#/components/responses/ListResponse'
+        401:
+          $ref: '#/components/responses/401Response'
+        403:
+          $ref: '#/components/responses/403Response'
+        500:
+          $ref: '#/components/responses/TimeoutResponse'
+
+  /send:
+    get:
+      operationId: GET_send
+      summary: Send a command to specified server
+      tags:
+        - Commands
+      responses:
+        200:
+          $ref: '#/components/responses/SendAndWaitResponse'
+        202:
+          $ref: '#/components/responses/SendResponse'
+        401:
+          $ref: '#/components/responses/401Response'
+        403:
+          $ref: '#/components/responses/403Response'
+        500:
+          $ref: '#/components/responses/TimeoutResponse'
+
+      description: ''
+      parameters:
+        - name: ip
+          in: query
+          description: The target server IP
+          required: true
+          schema:
+            type: string
+            example: 10.10.10.10
+        - name: port
+          in: query
+          description: The target server port
+          required: true
+          schema:
+            type: number
+            example: 27015
+        - name: command
+          in: query
+          description: The command to be executed
+          required: true
+          schema:
+            type: string
+            example: sm plugins list
+        - name: delay
+          in: query
+          description: Amount of milliseconds to delay command execution
+          required: false
+          schema:
+            type: number
+            example: 1500
+        - name: wait
+          in: query
+          description: If response should wait for server response
+          required: false
+          schema:
+            type: boolean
+            example: true
+
+
+  /sendAll:
+    get:
+      operationId: GET_sendAll
+      summary: Send a command to specified server
+      tags:
+        - Commands
+      responses:
+        200:
+          $ref: '#/components/responses/SendAllAndWaitResponse'
+        202:
+          $ref: '#/components/responses/SendResponse'
+        401:
+          $ref: '#/components/responses/401Response'
+        403:
+          $ref: '#/components/responses/403Response'
+        500:
+          $ref: '#/components/responses/TimeoutResponse'
+
+      description: ''
+      parameters:
+        - name: command
+          in: query
+          description: The command to be executed
+          required: true
+          schema:
+            type: string
+            example: sm plugins list
+        - name: delay
+          in: query
+          description: Amount of milliseconds to delay command execution
+          required: false
+          schema:
+            type: number
+            example: 1500
+        - name: wait
+          in: query
+          description: If response should wait for server response
+          required: false
+          schema:
+            type: boolean
+            example: true
