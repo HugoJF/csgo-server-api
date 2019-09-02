@@ -11,7 +11,7 @@ const error = require('./helpers').error;
 const response = require('./helpers').response;
 const dotenv = require('dotenv').config();
 const {Loggly} = require('winston-loggly-bulk');
-const winston  = require('winston');
+const winston = require('winston');
 
 
 /***********************
@@ -55,9 +55,15 @@ process.stderr.write = (a) => {
 };
 
 console.log = function (d) { //
-    log_file.write(util.format(d) + '\n');
-    log_stdout.write(util.format(d) + '\n');
-    winston.log('info', d);
+    try {
+        log_file.write(util.format(d) + '\n');
+        log_stdout.write(util.format(d) + '\n');
+        winston.log('info', d);
+    } catch (e) {
+        if (e.code === 'ERR_STREAM_DESTROYED')
+            process.exit(e.errno);
+        throw e;
+    }
 };
 
 process.on('uncaughtException', function (err) {
