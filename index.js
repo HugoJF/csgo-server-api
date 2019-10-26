@@ -214,9 +214,10 @@ app.get('/sendAll', (req, res) => {
         delay = 0;
     }
 
-    let r = {};
+    let responseBody = {};
     let responsesReceived = 0;
 
+    log(`Sending ${servers.length} commands...`);
     servers.forEach((server) => {
         let ip = server.ip;
         let port = server.port;
@@ -227,14 +228,15 @@ app.get('/sendAll', (req, res) => {
         setTimeout(() => {
             let addr = `${server.ip}:${server.port}`;
 
-            r[addr] = '';
+            responseBody[addr] = '';
 
             server.execute(command, (z) => {
                 responsesReceived++;
-                r[addr] = z;
+                responseBody[addr] = z;
+                log(`Received response from ${addr}. Received: ${responsesReceived}/${servers.length}`);
 
                 if (wait && responsesReceived === servers.length)
-                    res.send(response(r));
+                    res.send(response(responseBody));
             });
         }, delay);
     });
