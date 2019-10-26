@@ -210,9 +210,9 @@ app.get('/sendAll', (req, res) => {
 
     delay = parseInt(delay);
 
-    if (isNaN(delay)) {
+    if (isNaN(delay))
         delay = 0;
-    }
+
 
     let responseBody = {};
     let responsesReceived = 0;
