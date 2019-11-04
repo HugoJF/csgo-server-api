@@ -26,36 +26,9 @@ app.use(haltOnTimedout);
  *    CONSTANTS    *
  *******************/
 const HTTP_PORT = 9000;
-const DATE_NOW = Date.now();
-const LOGS_PATH = __dirname + '/logs/logs' + DATE_NOW + '.log';
-const STDOUT_PATH = __dirname + '/logs/stdout' + DATE_NOW + '.log';
-const STDERR_PATH = __dirname + '/logs/errout' + DATE_NOW + '.log';
-
-/*********************
- *    WEB LOGGING    *
- *********************/
-let log_stdout = process.stdout;
-
-let log_file = fs.createWriteStream(LOGS_PATH, {flags: 'w'});
-let out_file = fs.createWriteStream(STDOUT_PATH);
-let err_file = fs.createWriteStream(STDERR_PATH);
-
-process.stdout.oldWrite = process.stdout.write;
-process.stderr.oldWrite = process.stdout.write;
-
-process.stdout.write = (a) => {
-    process.stdout.oldWrite(a);
-    out_file.write.bind(out_file);
-};
-process.stderr.write = (a) => {
-    process.stderr.oldWrite(a);
-    err_file.write.bind(err_file);
-};
 
 console.log = function (d) { //
     try {
-        log_file.write(util.format(d) + '\n');
-        log_stdout.write(util.format(d) + '\n');
         winston.log('info', d);
     } catch (e) {
         if (e.code === 'ERR_STREAM_DESTROYED')
@@ -64,9 +37,6 @@ console.log = function (d) { //
     }
 };
 
-process.on('uncaughtException', function (err) {
-    console.error((err && err.stack) ? err.stack : err);
-});
 
 winston.add(new Loggly({
     token: process.env.LOGGLY_TOKEN,
@@ -243,35 +213,11 @@ app.get('/sendAll', (req, res) => {
         res.send(response('Sent'));
 });
 
-app.get('/logs', (req, res) => {
-    log('/logs routed');
-    res.type('text');
-    res.send(response(fs.readFileSync(LOGS_PATH, {encoding: 'utf8'})));
-});
-
-app.get('/logs_raw', (req, res) => {
-    log('/logs_raw routed');
-    res.type('text');
-    res.send(fs.readFileSync(LOGS_PATH, {encoding: 'utf8'}));
-});
-
-app.get('/stdout', (req, res) => {
-    log('/stdout routed');
-    res.type('text');
-    res.send(response(fs.readFileSync(STDOUT_PATH, {encoding: 'utf8'})));
-});
-
-app.get('/stderr', (req, res) => {
-    log('/stderr routed');
-    res.type('text');
-    res.send(response(fs.readFileSync(STDERR_PATH, {encoding: 'utf8'})));
-});
-
 app.get('/kill', (req, res) => {
     log('/kill routed');
     res.type('text');
-    process.exit(1);
     res.send('Killing this instance');
+    process.exit(1);
 });
 
 
@@ -281,7 +227,4 @@ app.get('/kill', (req, res) => {
 
 app.listen(HTTP_PORT, () => {
     console.log('HTTP listening on ' + HTTP_PORT);
-    console.log('Logging on: ' + LOGS_PATH);
-    console.log('STDOUT on: ' + STDOUT_PATH);
-    console.log('STDERR on: ' + STDERR_PATH);
 });
