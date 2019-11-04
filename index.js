@@ -27,8 +27,10 @@ app.use(haltOnTimedout);
  *******************/
 const HTTP_PORT = 9000;
 
+const old = console.log;
 console.log = function (d) { //
     try {
+        old(d);
         winston.log('info', d);
     } catch (e) {
         if (e.code === 'ERR_STREAM_DESTROYED')
