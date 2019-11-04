@@ -177,6 +177,9 @@ app.get('/sendAll', (req, res) => {
     let delay = req.query.delay;
     let wait = req.query.wait;
 
+    if (!command)
+        res.send(error('Command field is required'));
+
     delay = parseInt(delay);
 
     if (isNaN(delay))
