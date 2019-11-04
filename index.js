@@ -1,4 +1,4 @@
-const Server = require("./Server").Server;
+const {Server} = require("./Server");
 const fs = require('fs');
 const express = require('express');
 const util = require('util');
@@ -6,9 +6,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const cors = require('cors');
 const timeout = require('connect-timeout'); //express v4
-const haltOnTimedout = require('./helpers').haltOnTimedout;
-const error = require('./helpers').error;
-const response = require('./helpers').response;
+const {haltOnTimedout, response, error} = require('./helpers');
 const dotenv = require('dotenv').config();
 const {Loggly} = require('winston-loggly-bulk');
 const winston = require('winston');
