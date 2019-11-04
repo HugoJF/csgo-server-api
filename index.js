@@ -145,8 +145,7 @@ app.get('/send', (req, res) => {
     }, delay);
 
     if (!wait)
-        res.send(response('Sent'));
-
+        res.send(response(true));
 });
 
 app.get('/list', (req, res) => {
@@ -180,7 +179,6 @@ app.get('/sendAll', (req, res) => {
 
     if (isNaN(delay))
         delay = 0;
-
 
     let responseBody = {};
     let responsesReceived = 0;
@@ -219,7 +217,6 @@ app.get('/kill', (req, res) => {
     res.send('Killing this instance');
     process.exit(1);
 });
-
 
 /*****************
  *    BINDING    *

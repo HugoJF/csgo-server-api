@@ -1,6 +1,8 @@
 const rcon = require('rcon');
 const util = require('util');
-const runCallbacks = require('./helpers').runCallbacks;
+const {runCallbacks} = require('./helpers');
+
+const DELAY_TO_RECONNECT = 1000;
 
 class Server {
     constructor(hostname, name, ip, port, rconPassword, receiverPort) {
@@ -56,7 +58,7 @@ class Server {
         this.log(`RCON connection ended: ${err}`);
 
         this.authed = false;
-        this.startRconConnection();
+        setTimeout(this.startRconConnection.bind(this), DELAY_TO_RECONNECT);
 
         runCallbacks(this.onConnectionEnd, err);
     }
@@ -65,7 +67,7 @@ class Server {
         this.log(`RCON errored with message: ${err}`);
 
         this.authed = false;
-        this.startRconConnection();
+        setTimeout(this.startRconConnection.bind(this), DELAY_TO_RECONNECT);
 
         runCallbacks(this.onConnectionError, err);
     }
@@ -111,4 +113,4 @@ class Server {
 
 }
 
-module.exports.Server = Server;
+module.exports = {Server};
