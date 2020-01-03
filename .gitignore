@@ -1,4 +1,5 @@
 /.idea
 /logs
+/build
 /node_modules
 servers.json
