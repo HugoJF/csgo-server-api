@@ -7,7 +7,7 @@ import timeout from 'connect-timeout';
 import {haltOnTimedout, response, error} from './helpers'
 import {Server} from "./Server"
 
-dotenv.config();
+dotenv.config({path: '../.env'});
 const app = express();
 
 /***********************
@@ -49,7 +49,7 @@ function log(message) {
 }
 
 function readServers() {
-    let rawServers = fs.readFileSync('servers.json', {encoding: 'utf8'});
+    let rawServers = fs.readFileSync('../servers.json', {encoding: 'utf8'});
     let svs = JSON.parse(rawServers);
 
     for (let obj of svs['tokens']) {
