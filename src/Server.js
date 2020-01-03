@@ -1,6 +1,6 @@
-const rcon = require('rcon');
-const util = require('util');
-const {runCallbacks} = require('./helpers');
+import rcon from 'rcon';
+import util from 'util';
+import {runCallbacks} from './helpers';
 
 const DELAY_TO_RECONNECT = 1000;
 

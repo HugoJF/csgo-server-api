@@ -1,16 +1,14 @@
-const {Server} = require("./Server");
-const fs = require('fs');
-const express = require('express');
-const util = require('util');
-const app = express();
-const bodyParser = require("body-parser");
-const cors = require('cors');
-const timeout = require('connect-timeout'); //express v4
-const {haltOnTimedout, response, error} = require('./helpers');
-const dotenv = require('dotenv').config();
-const {Loggly} = require('winston-loggly-bulk');
-const winston = require('winston');
+import fs from 'fs'
+import cors from 'cors'
+import dotenv from 'dotenv';
+import express from 'express'
+import bodyParser from "body-parser"
+import timeout from 'connect-timeout';
+import {haltOnTimedout, response, error} from './helpers'
+import {Server} from "./Server"
 
+dotenv.config();
+const app = express();
 
 /***********************
  *    CONFIGURATION    *
@@ -26,27 +24,6 @@ app.use(haltOnTimedout);
  *    CONSTANTS    *
  *******************/
 const HTTP_PORT = 9000;
-
-const old = console.log;
-console.log = function (d) { //
-    try {
-        old(d);
-        winston.log('info', d);
-    } catch (e) {
-        if (e.code === 'ERR_STREAM_DESTROYED')
-            process.exit(e.errno);
-        throw e;
-    }
-};
-
-
-winston.add(new Loggly({
-    token: process.env.LOGGLY_TOKEN,
-    subdomain: process.env.LOGGLY_DOMAIN,
-    tags: ["Winston-NodeJS"],
-    json: true
-}));
-
 
 /*******************
  *    VARIABLES    *
@@ -67,21 +44,22 @@ function getServer(ip, port) {
 }
 
 function log(message) {
-    console.log(message);
+    let now = (new Date()).toISOString();
+    console.log(`[${now}] message`);
 }
 
 function readServers() {
     let rawServers = fs.readFileSync('servers.json', {encoding: 'utf8'});
     let svs = JSON.parse(rawServers);
 
+    for (let obj of svs['tokens']) {
+        tokens.push(obj);
+    }
+
     for (let obj of svs['servers']) {
         let sv = new Server(obj['hostname'], obj['name'], obj['ip'], parseInt(obj['port']), obj['password'], obj['receiverPort']);
         servers.push(sv);
         sv.startRconConnection();
-    }
-
-    for (let obj of svs['tokens']) {
-        tokens.push(obj);
     }
 }
 
@@ -107,13 +85,6 @@ readServers();
  *    PAGES    *
  ***************/
 
-// Used to log messages to the web-console
-app.get('/consoleLog', (req, res) => {
-    log('/consoleLog routed');
-    log(req.query.message);
-    res.send(response('Logged'));
-});
-
 app.get('/send', (req, res) => {
     if (!validateToken(req, res)) return;
 
@@ -129,7 +100,6 @@ app.get('/send', (req, res) => {
     if (isNaN(delay)) {
         delay = 0;
     }
-
 
     let server = getServer(ip, parseInt(port));
 
@@ -214,13 +184,6 @@ app.get('/sendAll', (req, res) => {
 
     if (!wait)
         res.send(response('Sent'));
-});
-
-app.get('/kill', (req, res) => {
-    log('/kill routed');
-    res.type('text');
-    res.send('Killing this instance');
-    process.exit(1);
 });
 
 /*****************

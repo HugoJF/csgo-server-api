@@ -1,4 +1,4 @@
-function runCallbacks(callbackList, data) {
+export function runCallbacks(callbackList, data) {
     for (let i = callbackList.length - 1; i >= 0; i--) {
         let cb = callbackList[i];
 
@@ -8,12 +8,12 @@ function runCallbacks(callbackList, data) {
     }
 }
 
-function haltOnTimedout(req, res, next) {
+export function haltOnTimedout(req, res, next) {
     if (!req.timedout) next();
     if (res.timedout) res.send(error('Timeout'))
 }
 
-function response(res, message) {
+export function response(res, message) {
     return JSON.stringify({
         error: false,
         message: message,
@@ -21,15 +21,9 @@ function response(res, message) {
     });
 }
 
-function error(message) {
+export function error(message) {
     return JSON.stringify({
         error: true,
         message: message,
     });
 }
-
-
-module.exports.runCallbacks = runCallbacks;
-module.exports.haltOnTimedout = haltOnTimedout;
-module.exports.response = response;
-module.exports.error = error;
