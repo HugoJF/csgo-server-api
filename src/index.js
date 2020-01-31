@@ -6,7 +6,7 @@ import bodyParser from "body-parser"
 import timeout from 'connect-timeout';
 import {haltOnTimedout, response, error} from './helpers'
 import {Server} from "./Server"
-import Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node';
 
 dotenv.config({path: '../.env'});
 Sentry.init({ dsn: process.env.SENTRY_DSN });
