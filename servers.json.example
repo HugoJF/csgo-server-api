@@ -1,0 +1,14 @@
+{
+  "tokens": [
+	"my_secret_token",
+  ],
+  "servers": [
+    {
+      "hostname": "Server 1",
+      "name": "Server 1",
+      "ip": "123.123.123.123",
+      "port": 27015,
+      "password": "secret"
+    }
+  ]
+}
