@@ -1,13 +1,14 @@
-import fs from 'fs'
-import cors from 'cors'
-import express from 'express'
-import bodyParser from "body-parser"
+import cors from 'cors';
+import express from 'express';
+import bodyParser from "body-parser";
 import timeout from 'connect-timeout';
-import {haltOnTimedout, response, error} from './helpers'
-import {Server} from "./Server"
+import {haltOnTimedout, response, error} from './helpers';
+import {Server} from './Server';
 import * as Sentry from '@sentry/node';
 
-Sentry.init({ dsn: process.env.SENTRY_DSN });
+const fs = require('fs').promises;
+
+Sentry.init({dsn: process.env.SENTRY_DSN});
 
 const app = express();
 
@@ -24,42 +25,50 @@ app.use(haltOnTimedout);
 /*******************
  *    CONSTANTS    *
  *******************/
-const HTTP_PORT = 9000;
+const HTTP_PORT = process.env.HTTP_PORT || 9000;
 
 /*******************
  *    VARIABLES    *
  *******************/
 // Server data
-let servers = [];
+let servers = {};
 let tokens = [];
 
 // TODO: update with foreach
-function getServer(ip, port) {
-    for (let i = 0; i < servers.length; i++) {
-        if (servers[i].ip === ip && servers[i].port === port) {
-            return servers[i];
-        }
+function getServer(address, port) {
+    if (port) {
+        address = `${address}:${port}`;
     }
 
-    return undefined;
+    return servers[address];
 }
 
-function log(message) {
-    let now = (new Date()).toISOString();
-    console.log(`[${now}] message`);
+function log(...message) {
+    let now = (new Date).toISOString();
+
+    console.log(`[${now}] ${message.join(' ')}`);
 }
 
-function readServers() {
-    let rawServers = fs.readFileSync('./config/servers.json', {encoding: 'utf8'});
-    let svs = JSON.parse(rawServers);
+function sleep(delay) {
+    return new Promise((res, rej) => {
+        setTimeout(res, delay);
+    });
+}
 
-    for (let obj of svs['tokens']) {
-        tokens.push(obj);
-    }
+async function readServers() {
+    let rawServers = await fs.readFile('./config/servers.json');
+    let svs = JSON.parse(rawServers.toString());
 
-    for (let obj of svs['servers']) {
-        let sv = new Server(obj['hostname'], obj['name'], obj['ip'], parseInt(obj['port']), obj['password'], obj['receiverPort']);
-        servers.push(sv);
+    tokens = [
+        ...tokens,
+        ...svs['tokens']
+    ];
+
+    for (let {hostname, name, ip, port, password, receiverPort} of svs['servers']) {
+        let sv = new Server(hostname, name, ip, parseInt(port), password, receiverPort);
+        let address = `${ip}:${port}`;
+
+        servers[address] = sv;
         sv.startRconConnection();
     }
 }
@@ -71,30 +80,26 @@ function validateToken(req, res) {
         log(`${token}: Invalid token`);
         res.send(error('Invalid token'));
         return false;
-    } else {
-        return true;
     }
+
+    return true;
 }
 
 /**********************
  *    STATIC CALLS    *
  **********************/
 
-readServers();
+readServers()
+    .catch(err => console.log(err));
 
 /***************
  *    PAGES    *
  ***************/
 
-app.get('/send', (req, res) => {
+app.get('/send', async (req, res) => {
     if (!validateToken(req, res)) return;
 
-    let ip = req.query.ip;
-    let port = req.query.port;
-    let command = req.query.command;
-    let delay = req.query.delay;
-    let token = req.query.token;
-    let wait = req.query.wait;
+    let {ip, port, command, delay, token, wait} = req.query;
 
     delay = parseInt(delay);
 
@@ -111,14 +116,17 @@ app.get('/send', (req, res) => {
 
     log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
-    setTimeout(() => {
-        server.execute(command, (r) => {
-            if (wait) res.send(response(r));
-        });
-    }, delay);
-
-    if (!wait)
+    if (!wait) {
         res.send(response(true));
+    }
+
+    await sleep(delay);
+
+    server.execute(command, (r) => {
+        if (wait) {
+            res.send(response(r));
+        }
+    });
 });
 
 app.get('/list', (req, res) => {
@@ -130,12 +138,17 @@ app.get('/list', (req, res) => {
 
     log(`${token}: Requested server listing`);
 
-    let svs = servers.map((sv) => (
-        serializedFields.reduce((acc, cur) => {
-            acc[cur] = sv[cur];
-            return acc;
-        }, {})
-    ));
+    function serialize(server) {
+        let result = {};
+
+        for (let field of serializedFields) {
+            result[field] = server[field];
+        }
+
+        return result;
+    }
+
+    let svs = Object.values(servers).map(serialize);
 
     res.send(response(svs));
 });
@@ -143,48 +156,48 @@ app.get('/list', (req, res) => {
 app.get('/sendAll', (req, res) => {
     if (!validateToken(req, res)) return;
 
-    let command = req.query.command;
-    let token = req.query.token;
-    let delay = req.query.delay;
-    let wait = req.query.wait;
+    let {command, token, delay, wait} = req.query;
 
-    if (!command)
+    if (!command) {
         res.send(error('Command field is required'));
+        return;
+    }
 
     delay = parseInt(delay);
 
-    if (isNaN(delay))
+    if (isNaN(delay)) {
         delay = 0;
-
-    let responseBody = {};
-    let responsesReceived = 0;
+    }
+    let body = {};
+    let responses = 0;
 
     log(`Sending ${servers.length} commands...`);
-    servers.forEach((server) => {
-        let ip = server.ip;
-        let port = server.port;
 
+    servers.forEach(async (server) => {
+        let {ip, port} = server;
 
         log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
 
-        setTimeout(() => {
-            let addr = `${server.ip}:${server.port}`;
+        await sleep(delay);
 
-            responseBody[addr] = '';
+        let addr = `${server.ip}:${server.port}`;
 
-            server.execute(command, (z) => {
-                responsesReceived++;
-                responseBody[addr] = z;
-                log(`Received response from ${addr}. Received: ${responsesReceived}/${servers.length}`);
+        body[addr] = '';
 
-                if (wait && responsesReceived === servers.length)
-                    res.send(response(responseBody));
-            });
-        }, delay);
+        server.execute(command, (z) => {
+            responses++;
+            body[addr] = z;
+            log(`Received response from ${addr}. Received: ${responses}/${servers.length}`);
+
+            if (wait && responses === servers.length) {
+                res.send(response(body));
+            }
+        });
     });
 
-    if (!wait)
+    if (!wait) {
         res.send(response('Sent'));
+    }
 });
 
 /*****************
