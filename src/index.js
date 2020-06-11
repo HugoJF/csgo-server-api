@@ -1,6 +1,5 @@
 import fs from 'fs'
 import cors from 'cors'
-import dotenv from 'dotenv';
 import express from 'express'
 import bodyParser from "body-parser"
 import timeout from 'connect-timeout';
@@ -8,7 +7,6 @@ import {haltOnTimedout, response, error} from './helpers'
 import {Server} from "./Server"
 import * as Sentry from '@sentry/node';
 
-dotenv.config({path: './.env'});
 Sentry.init({ dsn: process.env.SENTRY_DSN });
 
 const app = express();

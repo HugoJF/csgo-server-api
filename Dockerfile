@@ -18,4 +18,4 @@ COPY . .
 RUN npm run babel
 
 EXPOSE 8080
-CMD [ "node", "build/index.js" ]
+CMD [ "npm", "run start" ]

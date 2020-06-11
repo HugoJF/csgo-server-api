@@ -1,11 +1,12 @@
 {
-  "name": "rest-rcon",
+  "name": "csgo-server-api",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
   "scripts": {
+    "dev": "npm run babel && npm run start",
     "babel": "babel src -d build",
-    "start": "npm run babel && node build/index.js",
+    "start": "node -r dotenv/config build/index.js",
     "watch": "nodemon src/index.js"
   },
   "author": "",
