@@ -8,7 +8,7 @@ import {haltOnTimedout, response, error} from './helpers'
 import {Server} from "./Server"
 import * as Sentry from '@sentry/node';
 
-dotenv.config({path: '../.env'});
+dotenv.config({path: './.env'});
 Sentry.init({ dsn: process.env.SENTRY_DSN });
 
 const app = express();
@@ -52,7 +52,7 @@ function log(message) {
 }
 
 function readServers() {
-    let rawServers = fs.readFileSync('../servers.json', {encoding: 'utf8'});
+    let rawServers = fs.readFileSync('./config/servers.json', {encoding: 'utf8'});
     let svs = JSON.parse(rawServers);
 
     for (let obj of svs['tokens']) {
