@@ -7,6 +7,8 @@
     "dev": "npm run babel && npm run start",
     "babel": "babel src -d build",
     "start": "node -r dotenv/config build/index.js",
+    "build": "docker build -t hugojf/csgo-server-api:latest .",
+    "docker": "docker run -it -p 9000:9000 -v \"$(pwd)/config:/usr/src/app/config\" hugojf/csgo-server-api:latest",
     "watch": "nodemon src/index.js"
   },
   "author": "",
