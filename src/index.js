@@ -3,7 +3,7 @@ import express from 'express';
 import bodyParser from "body-parser";
 import timeout from 'connect-timeout';
 import {haltOnTimedout, response, error} from './helpers';
-import {Server} from './Server';
+import Server from './Server';
 import * as Sentry from '@sentry/node';
 
 const fs = require('fs').promises;
@@ -69,7 +69,7 @@ async function readServers() {
         let address = `${ip}:${port}`;
 
         servers[address] = sv;
-        sv.startRconConnection();
+        sv.connect();
     }
 }
 
@@ -111,7 +111,6 @@ app.get('/send', async (req, res) => {
 
     if (!server) {
         res.send(error('Server could not be found!'));
-        return;
     }
 
     log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
@@ -122,11 +121,17 @@ app.get('/send', async (req, res) => {
 
     await sleep(delay);
 
-    server.execute(command, (r) => {
-        if (wait) {
-            res.send(response(r));
-        }
-    });
+    const reply = await server.execute(command);
+
+    if (!reply) {
+        res.send(error('Null response'));
+
+        return;
+    }
+
+    if (wait) {
+        res.send(response(reply.response));
+    }
 });
 
 app.get('/list', (req, res) => {
@@ -153,7 +158,7 @@ app.get('/list', (req, res) => {
     res.send(response(svs));
 });
 
-app.get('/sendAll', (req, res) => {
+app.get('/sendAll', async (req, res) => {
     if (!validateToken(req, res)) return;
 
     let {command, token, delay, wait} = req.query;
@@ -168,35 +173,27 @@ app.get('/sendAll', (req, res) => {
     if (isNaN(delay)) {
         delay = 0;
     }
-    let body = {};
-    let responses = 0;
 
     log(`Sending ${servers.length} commands...`);
 
-    servers.forEach(async (server) => {
-        let {ip, port} = server;
-
-        log(`${token}: ${ip}:${port} @ ${delay}ms $ ${command}`);
-
-        await sleep(delay);
-
-        let addr = `${server.ip}:${server.port}`;
-
-        body[addr] = '';
-
-        server.execute(command, (z) => {
-            responses++;
-            body[addr] = z;
-            log(`Received response from ${addr}. Received: ${responses}/${servers.length}`);
-
-            if (wait && responses === servers.length) {
-                res.send(response(body));
-            }
-        });
-    });
-
     if (!wait) {
-        res.send(response('Sent'));
+        res.send(response(true));
+    }
+
+    await sleep(delay);
+
+    const promises = Object.values(servers).map(server => server.execute(command));
+
+    if (wait) {
+        const all = await Promise.all(promises);
+
+        const body = all.reduce((acc, res) => {
+            acc[res.server] = res ? res.response : null;
+
+            return acc;
+        }, {});
+
+        res.send(response(body));
     }
 });
 

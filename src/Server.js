@@ -1,11 +1,10 @@
-import rcon from 'rcon';
-import util from 'util';
-import {runCallbacks} from './helpers';
+import {Rcon} from 'rcon-client';
+import {executeCallbacks} from './helpers';
 
-const DELAY_TO_RECONNECT = 1000;
+const RECONNECT_DELAY = 1000;
 
 class Server {
-    constructor(hostname, name, ip, port, rconPassword, receiverPort) {
+    constructor(hostname, name, ip, port, password, receiverPort) {
         /**************
          * PROPERTIES *
          **************/
@@ -13,13 +12,14 @@ class Server {
         this.name = name;
         this.ip = ip;
         this.port = port;
-        this.rconPassword = rconPassword;
+        this.password = password;
         this.receiverPort = receiverPort;
 
         /**********
          * STATES *
          **********/
         this.authed = false;
+        this.connected = false;
 
         /***********
          * HANDLES *
@@ -29,88 +29,104 @@ class Server {
         /*************
          * CALLBACKS *
          *************/
-        this.responseStack = [];
-
+        this.onConnected = [];
         this.onConnectionAuth = [];
-        this.onConnectionResponse = [];
-        this.onConnectionEnd = [];
         this.onConnectionError = [];
+        this.onConnectionEnd = [];
     }
 
-    onAuth() {
+    handleOnConnected() {
+        this.log(`Connected RCON!`);
+
+        this.connected = true;
+
+        executeCallbacks(this.onConnected);
+    }
+
+    handleOnAuthenticated() {
         this.log(`Authenticated RCON!`);
 
         this.authed = true;
 
-        runCallbacks(this.onConnectionAuth);
+        executeCallbacks(this.onConnectionAuth);
     }
 
-    onResponse(str) {
-        let cb = this.responseStack.shift();
-
-        if (util.isFunction(cb))
-            cb(str);
-
-        runCallbacks(this.onConnectionResponse, str);
-    }
-
-    onEnd(err) {
-        this.log(`RCON connection ended: ${err}`);
-
-        this.authed = false;
-        setTimeout(this.startRconConnection.bind(this), DELAY_TO_RECONNECT);
-
-        runCallbacks(this.onConnectionEnd, err);
-    }
-
-    onError(err) {
+    handleOnError(err) {
         this.log(`RCON errored with message: ${err}`);
 
+        this.connected = false;
         this.authed = false;
-        setTimeout(this.startRconConnection.bind(this), DELAY_TO_RECONNECT);
 
-        runCallbacks(this.onConnectionError, err);
+        setTimeout(this.connect.bind(this), RECONNECT_DELAY);
+
+        executeCallbacks(this.onConnectionError, err);
     }
 
-    startRconConnection() {
-        this.connection = new rcon(this.ip, this.port, this.rconPassword);
+    handleOnEnd() {
+        this.log('RCON ended');
 
-        this.connection
-            .on('auth', this.onAuth.bind(this))
-            .on('response', this.onResponse.bind(this))
-            .on('end', this.onEnd.bind(this))
-            .on('error', this.onError.bind(this));
+        this.connected = false;
+        this.authed = false;
+
+        setTimeout(this.connect.bind(this), RECONNECT_DELAY);
+
+        executeCallbacks(this.onConnectionEnd);
+    }
+
+    handleResponse(response) {
+        this.log('Response', response);
+    }
+
+    async connect() {
+        this.connection = new Rcon({
+            host: this.ip,
+            port: this.port,
+            password: this.password,
+        });
+
+        this.connection.on('connect', this.handleOnConnected.bind(this));
+        this.connection.on('authenticated', this.handleOnAuthenticated.bind(this));
+        this.connection.on('error', this.handleOnError.bind(this));
+        this.connection.on('end', this.handleOnEnd.bind(this));
 
         this.connection.connect();
     }
 
-    execute(command, callback) {
+    async execute(command) {
         this.log(`Trying to execute: ${command}`);
 
-        if (this.authed) {
-            this.syncExecute(command, callback);
-        } else {
-            this.onConnectionAuth.push(() => {
-                this.syncExecute(command, callback);
-                return true;
-            });
+        // TODO: maybe use events to fully respond?
+        if (!this.connected || !this.authed) {
+            return null;
+        }
+
+        try {
+            let response = await this.connection.send(command);
+
+            this.handleResponse(response);
+
+            return {
+                server: this.address(),
+                response
+            };
+        } catch (e) {
+            this.handleOnError(e);
+
+            return null;
         }
     }
 
-    syncExecute(command, callback) {
-        this.connection.send(command);
-
-        this.responseStack.push(callback);
+    address() {
+        return `${this.ip}:${this.port}`;
     }
 
-    log(message) {
-        console.log(`${this.toString()} ${message}`);
+    log(...message) {
+        console.log(`${this.toString()} ${message.join(' ')}`);
     }
 
     toString() {
-        return `[${this.name} (${this.ip}:${this.port})]`;
+        return `[${this.name} (${this.address()})]`;
     }
-
 }
 
-module.exports = {Server};
+module.exports = Server;
