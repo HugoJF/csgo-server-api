@@ -2,7 +2,7 @@ module.exports = {
     apps: [{
         name: 'csgo-server-api',
         cwd: '.',
-        script: 'index.js',
+        script: 'build/index.js',
 
         // Options reference: https://pm2.keymetrics.io/docs/usage/application-declaration/
         args: '',
